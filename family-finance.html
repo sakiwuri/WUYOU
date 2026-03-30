@@ -1,0 +1,1731 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>家族帳務管理</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500;600;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1410;
+    --ink2: #3d3028;
+    --ink3: #6b5c50;
+    --paper: #f5f0e8;
+    --paper2: #ede6d8;
+    --paper3: #e0d6c3;
+    --accent: #8b4513;
+    --accent2: #c07a3a;
+    --accent3: #e8c06a;
+    --green: #3a6b4a;
+    --green2: #6aaa7a;
+    --red: #8b2020;
+    --red2: #cc4444;
+    --blue: #1e4a7a;
+    --blue2: #3d80c0;
+    --shadow: rgba(26,20,16,0.12);
+    --border: rgba(139,69,19,0.2);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Serif TC', serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+    background-image: 
+      repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(139,69,19,0.04) 27px, rgba(139,69,19,0.04) 28px),
+      radial-gradient(ellipse at 20% 0%, rgba(192,122,58,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 100%, rgba(139,69,19,0.06) 0%, transparent 60%);
+  }
+
+  /* ─── Header ─── */
+  .site-header {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 16px var(--shadow);
+  }
+  .header-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .site-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .site-title .icon { font-size: 1.3rem; }
+  .header-balance {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .balance-chip {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 0.78rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .balance-chip:hover { background: rgba(255,255,255,0.14); }
+  .balance-chip .label { opacity: 0.6; font-size: 0.68rem; letter-spacing: 0.05em; }
+  .balance-chip .amount {
+    font-family: 'DM Mono', monospace;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--accent3);
+  }
+  .balance-chip .amount.negative { color: #ff8a8a; }
+
+  /* ─── Nav Tabs ─── */
+  .nav-tabs {
+    background: var(--ink2);
+    display: flex;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .nav-tab {
+    padding: 10px 20px;
+    font-size: 0.82rem;
+    color: rgba(245,240,232,0.55);
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: inherit;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .nav-tab:hover { color: rgba(245,240,232,0.85); }
+  .nav-tab.active {
+    color: var(--accent3);
+    border-bottom-color: var(--accent3);
+  }
+
+  /* ─── Layout ─── */
+  .main { max-width: 1200px; margin: 0 auto; padding: 24px 16px; }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ─── Cards ─── */
+  .card {
+    background: rgba(255,255,255,0.6);
+    backdrop-filter: blur(4px);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px var(--shadow);
+  }
+  .card-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.06em;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ─── Grid ─── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media(max-width:768px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  }
+
+  /* ─── Form ─── */
+  .form-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex: 1;
+    min-width: 120px;
+  }
+  .form-group label {
+    font-size: 0.74rem;
+    color: var(--ink3);
+    letter-spacing: 0.04em;
+  }
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    background: var(--paper2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    font-family: inherit;
+    color: var(--ink);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    border-color: var(--accent2);
+    box-shadow: 0 0 0 3px rgba(139,69,19,0.1);
+  }
+  .form-group input[type=number] { font-family: 'DM Mono', monospace; }
+
+  /* ─── Buttons ─── */
+  .btn {
+    padding: 9px 20px;
+    border: none;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.83rem;
+    font-weight: 500;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: var(--paper);
+    box-shadow: 0 2px 8px rgba(139,69,19,0.3);
+  }
+  .btn-primary:hover { background: var(--ink2); transform: translateY(-1px); }
+  .btn-secondary {
+    background: var(--paper3);
+    color: var(--ink2);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { background: var(--paper2); }
+  .btn-danger { background: var(--red); color: white; }
+  .btn-danger:hover { background: var(--red2); }
+  .btn-sm { padding: 5px 12px; font-size: 0.75rem; }
+  .btn-icon { padding: 5px 8px; font-size: 0.85rem; }
+
+  /* ─── Summary Stats ─── */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .stat-box {
+    background: rgba(255,255,255,0.7);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .stat-box .s-label {
+    font-size: 0.7rem;
+    color: var(--ink3);
+    letter-spacing: 0.06em;
+  }
+  .stat-box .s-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 1.15rem;
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .stat-box .s-value.green { color: var(--green); }
+  .stat-box .s-value.red { color: var(--red); }
+  .stat-box .s-value.blue { color: var(--blue); }
+  .stat-box .s-sub { font-size: 0.68rem; color: var(--ink3); }
+
+  /* ─── Table ─── */
+  .table-wrap { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+  }
+  thead th {
+    background: var(--ink2);
+    color: var(--paper);
+    padding: 9px 12px;
+    text-align: left;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+  tbody tr {
+    border-bottom: 1px solid rgba(139,69,19,0.1);
+    transition: background 0.15s;
+  }
+  tbody tr:hover { background: rgba(139,69,19,0.04); }
+  tbody td {
+    padding: 9px 12px;
+    color: var(--ink2);
+    vertical-align: middle;
+  }
+  .mono { font-family: 'DM Mono', monospace; }
+  .amount-cell { font-family: 'DM Mono', monospace; font-weight: 500; }
+  .amount-cell.positive { color: var(--green); }
+  .amount-cell.negative { color: var(--red); }
+
+  /* ─── Category Badge ─── */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+  }
+  .badge-house { background: #e8d5b0; color: #6b3a0a; }
+  .badge-card { background: #d0e0f0; color: #1e3a5a; }
+  .badge-reward { background: #d0ead8; color: #1a4a28; }
+  .badge-bank { background: #e8d0e8; color: #4a1a5a; }
+
+  /* ─── Filter Bar ─── */
+  .filter-bar {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    padding: 14px 16px;
+    background: rgba(255,255,255,0.5);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .filter-bar .form-group { min-width: 100px; flex: none; }
+
+  /* ─── Toast ─── */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 0.83rem;
+    z-index: 9999;
+    transform: translateY(60px);
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+    border-left: 3px solid var(--accent3);
+  }
+  #toast.show { transform: translateY(0); opacity: 1; }
+
+  /* ─── Modal ─── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26,20,16,0.5);
+    z-index: 500;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--paper);
+    border-radius: 12px;
+    padding: 28px;
+    width: 90%;
+    max-width: 480px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+  }
+
+  /* ─── Dashboard specific ─── */
+  .month-nav {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .month-nav .month-label {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--accent);
+    min-width: 120px;
+    text-align: center;
+    letter-spacing: 0.06em;
+  }
+  .category-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .cat-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.82rem;
+  }
+  .cat-bar-wrap {
+    flex: 1;
+    height: 8px;
+    background: var(--paper3);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .cat-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent2), var(--accent3));
+    border-radius: 4px;
+    transition: width 0.5s ease;
+  }
+  .cat-name { width: 110px; color: var(--ink2); flex-shrink: 0; }
+  .cat-amt { width: 90px; text-align: right; font-family: 'DM Mono', monospace; font-size: 0.79rem; color: var(--ink3); flex-shrink: 0; }
+
+  /* ─── Bank section ─── */
+  .bank-list { display: flex; flex-direction: column; gap: 8px; }
+  .bank-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: rgba(255,255,255,0.7);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .bank-info .bank-name { font-weight: 600; font-size: 0.88rem; }
+  .bank-info .bank-note { font-size: 0.74rem; color: var(--ink3); }
+  .bank-amount {
+    font-family: 'DM Mono', monospace;
+    font-size: 1.05rem;
+    font-weight: 500;
+  }
+
+  /* ─── Recurring toggle ─── */
+  .toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    color: var(--ink2);
+  }
+  .toggle-wrap input[type=checkbox] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  /* ─── Empty state ─── */
+  .empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--ink3);
+    font-size: 0.85rem;
+  }
+  .empty .icon { font-size: 2.5rem; margin-bottom: 10px; }
+
+  /* pagination */
+  .pagination {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    justify-content: flex-end;
+    margin-top: 12px;
+    font-size: 0.8rem;
+    color: var(--ink3);
+  }
+  .page-btn {
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--paper2);
+    cursor: pointer;
+    font-size: 0.78rem;
+    color: var(--ink2);
+    transition: background 0.2s;
+  }
+  .page-btn:hover { background: var(--paper3); }
+  .page-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+  .page-btn:disabled { opacity: 0.4; cursor: default; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <div class="site-title">
+      <span class="icon">🏠</span>
+      家族帳務管理
+    </div>
+    <div class="header-balance" id="headerBalance">
+      <!-- 動態更新 -->
+    </div>
+  </div>
+  <div style="background:var(--ink2);">
+    <div class="nav-tabs" style="max-width:1200px;margin:0 auto;padding:0 16px;">
+      <button class="nav-tab active" onclick="showPage('dashboard')">📊 總覽</button>
+      <button class="nav-tab" onclick="showPage('bank')">🏦 銀行帳戶</button>
+      <button class="nav-tab" onclick="showPage('house')">🏠 房屋費用</button>
+      <button class="nav-tab" onclick="showPage('card')">💳 信用卡</button>
+      <button class="nav-tab" onclick="showPage('query')">🔍 查詢記錄</button>
+    </div>
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- ═══ 總覽 ═══ -->
+  <div id="page-dashboard" class="page active">
+    <div class="month-nav">
+      <button class="btn btn-secondary btn-sm" onclick="changeMonth(-1)">◀</button>
+      <span class="month-label" id="currentMonthLabel"></span>
+      <button class="btn btn-secondary btn-sm" onclick="changeMonth(1)">▶</button>
+      <button class="btn btn-secondary btn-sm" onclick="goToday()">今月</button>
+    </div>
+
+    <div class="stat-grid" id="dashStats"></div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">🏠 本月房屋費用分類</div>
+        <div class="category-summary" id="catSummary"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">💳 本月信用卡概況</div>
+        <div id="cardSummaryDash"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📋 本月最新記錄</div>
+      <div class="table-wrap" id="recentTable"></div>
+    </div>
+  </div>
+
+  <!-- ═══ 銀行帳戶 ═══ -->
+  <div id="page-bank" class="page">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">🏦 帳戶管理</div>
+        <div class="bank-list" id="bankList"></div>
+        <div style="margin-top:14px;">
+          <button class="btn btn-primary" onclick="openBankModal()">＋ 新增帳戶</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">↕️ 資金進出記錄</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>帳戶</label>
+            <select id="txBank"></select>
+          </div>
+          <div class="form-group">
+            <label>類型</label>
+            <select id="txType">
+              <option value="in">存入 ＋</option>
+              <option value="out">支出 －</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>金額（元）</label>
+            <input type="number" id="txAmount" placeholder="0" min="0">
+          </div>
+          <div class="form-group">
+            <label>日期</label>
+            <input type="date" id="txDate">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>備註</label>
+            <input type="text" id="txNote" placeholder="說明...">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="addBankTx()">記錄資金異動</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📋 帳戶異動記錄</div>
+      <div class="filter-bar">
+        <div class="form-group">
+          <label>篩選帳戶</label>
+          <select id="filterBankTx" onchange="renderBankTxTable()">
+            <option value="">全部</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>年月</label>
+          <input type="month" id="filterBankMonth" onchange="renderBankTxTable()">
+        </div>
+      </div>
+      <div class="table-wrap" id="bankTxTable"></div>
+    </div>
+  </div>
+
+  <!-- ═══ 房屋費用 ═══ -->
+  <div id="page-house" class="page">
+    <div class="card">
+      <div class="card-title">🏠 新增房屋費用</div>
+      <div class="form-row">
+        <div class="form-group" style="flex:2;min-width:160px;">
+          <label>費用類別</label>
+          <select id="houseCat">
+            <option value="房貸">房貸</option>
+            <option value="水費">水費</option>
+            <option value="電費">電費</option>
+            <option value="地價稅">地價稅</option>
+            <option value="房屋稅">房屋稅</option>
+            <option value="火災險">火災險</option>
+            <option value="地震險">地震險</option>
+            <option value="機車管理費">機車管理費</option>
+            <option value="中華電信網路費">中華電信網路費</option>
+            <option value="雜項支出">雜項支出</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>自訂名稱（選填）</label>
+          <input type="text" id="houseCustomName" placeholder="如：保全費">
+        </div>
+        <div class="form-group">
+          <label>金額（元）</label>
+          <input type="number" id="houseAmount" placeholder="0" min="0">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>繳費日期</label>
+          <input type="date" id="houseDate">
+        </div>
+        <div class="form-group">
+          <label>付款帳戶</label>
+          <select id="houseBank"><option value="">-- 選擇 --</option></select>
+        </div>
+        <div class="form-group">
+          <label>帳單期間</label>
+          <input type="month" id="housePeriod" placeholder="2025-01">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex:3;">
+          <label>備註</label>
+          <input type="text" id="houseNote" placeholder="...">
+        </div>
+        <div class="form-group" style="justify-content:flex-end;">
+          <label style="visibility:hidden;">送出</label>
+          <label class="toggle-wrap">
+            <input type="checkbox" id="houseRecurring"> 每月定期
+          </label>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <button class="btn btn-primary" onclick="addHouseExpense()">＋ 新增費用</button>
+        <button class="btn btn-secondary" onclick="openRecurringModal()">🔄 管理定期費用</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📋 房屋費用記錄</div>
+      <div class="filter-bar">
+        <div class="form-group">
+          <label>類別</label>
+          <select id="filterHouseCat" onchange="renderHouseTable()">
+            <option value="">全部</option>
+            <option value="房貸">房貸</option>
+            <option value="水費">水費</option>
+            <option value="電費">電費</option>
+            <option value="地價稅">地價稅</option>
+            <option value="房屋稅">房屋稅</option>
+            <option value="火災險">火災險</option>
+            <option value="地震險">地震險</option>
+            <option value="機車管理費">機車管理費</option>
+            <option value="中華電信網路費">中華電信網路費</option>
+            <option value="雜項支出">雜項支出</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>年月</label>
+          <input type="month" id="filterHouseMonth" onchange="renderHouseTable()">
+        </div>
+        <div class="form-group" style="justify-content:flex-end;">
+          <label style="visibility:hidden;">x</label>
+          <button class="btn btn-secondary btn-sm" onclick="clearFilter('house')">清除篩選</button>
+        </div>
+      </div>
+      <div class="table-wrap" id="houseTable"></div>
+      <div class="pagination" id="housePag"></div>
+    </div>
+  </div>
+
+  <!-- ═══ 信用卡 ═══ -->
+  <div id="page-card" class="page">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">💳 信用卡管理</div>
+        <div id="cardList" class="bank-list"></div>
+        <div style="margin-top:14px;">
+          <button class="btn btn-primary" onclick="openCardModal()">＋ 新增信用卡</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">📊 卡片統計</div>
+        <div id="cardStats"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">💳 新增消費記錄</div>
+      <div class="form-row">
+        <div class="form-group" style="flex:2;">
+          <label>信用卡</label>
+          <select id="expCard"></select>
+        </div>
+        <div class="form-group">
+          <label>金額（元）</label>
+          <input type="number" id="expAmount" placeholder="0" min="0">
+        </div>
+        <div class="form-group">
+          <label>消費日期</label>
+          <input type="date" id="expDate">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>類別</label>
+          <select id="expCat">
+            <option value="餐飲">餐飲</option>
+            <option value="超市量販">超市量販</option>
+            <option value="網購">網購</option>
+            <option value="加油">加油</option>
+            <option value="醫療">醫療</option>
+            <option value="交通">交通</option>
+            <option value="娛樂">娛樂</option>
+            <option value="繳費">繳費</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:2;">
+          <label>消費說明</label>
+          <input type="text" id="expDesc" placeholder="...">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="addExpense()">＋ 記錄消費</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🎁 回饋金記錄</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>信用卡</label>
+          <select id="rwdCard"></select>
+        </div>
+        <div class="form-group">
+          <label>回饋類型</label>
+          <select id="rwdType">
+            <option value="現金回饋">現金回饋</option>
+            <option value="點數">點數</option>
+            <option value="哩程">哩程</option>
+            <option value="折抵帳單">折抵帳單</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>金額／點數</label>
+          <input type="number" id="rwdAmount" placeholder="0" min="0">
+        </div>
+        <div class="form-group">
+          <label>日期</label>
+          <input type="date" id="rwdDate">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex:3;">
+          <label>備註</label>
+          <input type="text" id="rwdNote" placeholder="...">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="addReward()">＋ 記錄回饋金</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📋 消費與回饋記錄</div>
+      <div class="filter-bar">
+        <div class="form-group">
+          <label>信用卡</label>
+          <select id="filterExpCard" onchange="renderExpTable()">
+            <option value="">全部</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>類型</label>
+          <select id="filterExpType" onchange="renderExpTable()">
+            <option value="">全部</option>
+            <option value="expense">消費</option>
+            <option value="reward">回饋金</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>年月</label>
+          <input type="month" id="filterExpMonth" onchange="renderExpTable()">
+        </div>
+        <div class="form-group" style="justify-content:flex-end;">
+          <label style="visibility:hidden;">x</label>
+          <button class="btn btn-secondary btn-sm" onclick="clearFilter('card')">清除篩選</button>
+        </div>
+      </div>
+      <div class="table-wrap" id="expTable"></div>
+      <div class="pagination" id="expPag"></div>
+    </div>
+  </div>
+
+  <!-- ═══ 查詢記錄 ═══ -->
+  <div id="page-query" class="page">
+    <div class="card">
+      <div class="card-title">🔍 全域查詢</div>
+      <div class="filter-bar">
+        <div class="form-group">
+          <label>記錄類型</label>
+          <select id="qType" onchange="runQuery()">
+            <option value="">全部</option>
+            <option value="bank">銀行異動</option>
+            <option value="house">房屋費用</option>
+            <option value="expense">信用卡消費</option>
+            <option value="reward">信用卡回饋</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>起始日期</label>
+          <input type="date" id="qDateFrom" onchange="runQuery()">
+        </div>
+        <div class="form-group">
+          <label>結束日期</label>
+          <input type="date" id="qDateTo" onchange="runQuery()">
+        </div>
+        <div class="form-group" style="flex:2;">
+          <label>關鍵字</label>
+          <input type="text" id="qKeyword" oninput="runQuery()" placeholder="金額、備註、類別...">
+        </div>
+        <div class="form-group" style="justify-content:flex-end;">
+          <label style="visibility:hidden;">x</label>
+          <button class="btn btn-secondary btn-sm" onclick="clearQuery()">清除</button>
+        </div>
+      </div>
+      <div id="queryStats" style="margin-bottom:14px;"></div>
+      <div class="table-wrap" id="queryTable"></div>
+      <div class="pagination" id="queryPag"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📆 年度統計</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>選擇年份</label>
+          <select id="yearSelect" onchange="renderYearStats()"></select>
+        </div>
+      </div>
+      <div id="yearStats"></div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ─── Toast ─── -->
+<div id="toast"></div>
+
+<!-- ─── 銀行帳戶 Modal ─── -->
+<div class="modal-overlay" id="bankModal">
+  <div class="modal">
+    <div class="modal-title">🏦 <span id="bankModalTitle">新增帳戶</span></div>
+    <div class="form-row">
+      <div class="form-group" style="flex:2;">
+        <label>帳戶名稱</label>
+        <input type="text" id="bkName" placeholder="如：玉山銀行帳戶">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>帳號末四碼（選填）</label>
+        <input type="text" id="bkNum" placeholder="1234" maxlength="4">
+      </div>
+      <div class="form-group">
+        <label>初始餘額（元）</label>
+        <input type="number" id="bkBalance" placeholder="0">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>備註</label>
+        <input type="text" id="bkNote" placeholder="...">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeBankModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveBankAccount()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 信用卡 Modal ─── -->
+<div class="modal-overlay" id="cardModal">
+  <div class="modal">
+    <div class="modal-title">💳 新增信用卡</div>
+    <div class="form-row">
+      <div class="form-group" style="flex:2;">
+        <label>卡片名稱</label>
+        <input type="text" id="cdName" placeholder="如：玉山 Pi 卡">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>卡號末四碼</label>
+        <input type="text" id="cdNum" placeholder="1234" maxlength="4">
+      </div>
+      <div class="form-group">
+        <label>帳單截止日</label>
+        <input type="number" id="cdCutoff" placeholder="25" min="1" max="31">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>主要回饋說明</label>
+        <input type="text" id="cdReward" placeholder="如：一般消費 1%">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeCardModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveCard()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 定期費用 Modal ─── -->
+<div class="modal-overlay" id="recurringModal">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-title">🔄 定期費用管理</div>
+    <div id="recurringList"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeRecurringModal()">關閉</button>
+      <button class="btn btn-primary" onclick="applyRecurring()">套用本月定期費用</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════
+//  DATA LAYER
+// ════════════════════════════════
+const DB = {
+  get(key){ try{ return JSON.parse(localStorage.getItem(key))||[]; }catch{return [];} },
+  set(key,val){ localStorage.setItem(key,JSON.stringify(val)); },
+  getObj(key,def={}){ try{ return JSON.parse(localStorage.getItem(key))||def; }catch{return def;} },
+  setObj(key,val){ localStorage.setItem(key,JSON.stringify(val)); }
+};
+
+// Key names
+const KEYS = {
+  banks: 'fam_banks',
+  bankTx: 'fam_bankTx',
+  house: 'fam_house',
+  cards: 'fam_cards',
+  expenses: 'fam_expenses',
+  rewards: 'fam_rewards',
+  recurring: 'fam_recurring'
+};
+
+// ── helpers ──
+let editingBankId = null;
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+const fmt = n => isNaN(n)?'–':'$'+Number(n).toLocaleString('zh-TW');
+const fmtNum = n => Number(n).toLocaleString('zh-TW');
+const today = () => new Date().toISOString().slice(0,10);
+const monthOf = d => d?d.slice(0,7):'';
+
+function toast(msg, dur=2400){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), dur);
+}
+
+// ════════════════════════════════
+//  NAVIGATION
+// ════════════════════════════════
+let currentPage = 'dashboard';
+function showPage(p){
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(el=>el.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(el=>{
+    if(el.getAttribute('onclick')?.includes("'"+p+"'")) el.classList.add('active');
+  });
+  currentPage = p;
+  refreshPage(p);
+}
+
+function refreshPage(p){
+  if(p==='dashboard') renderDashboard();
+  if(p==='bank'){ renderBankList(); renderBankTxTable(); populateBankSelects(); }
+  if(p==='house'){ populateBankSelects(); renderHouseTable(); }
+  if(p==='card'){ renderCardList(); renderExpTable(); populateCardSelects(); renderCardStats(); }
+  if(p==='query'){ populateYearSelect(); runQuery(); renderYearStats(); }
+}
+
+// ════════════════════════════════
+//  HEADER BALANCE
+// ════════════════════════════════
+function updateHeaderBalance(){
+  const banks = DB.get(KEYS.banks);
+  const txs = DB.get(KEYS.bankTx);
+  const wrap = document.getElementById('headerBalance');
+  if(!banks.length){ wrap.innerHTML=''; return; }
+
+  let html = banks.map(b=>{
+    const bal = computeBankBalance(b.id, txs, b.balance);
+    const neg = bal < 0;
+    return `<div class="balance-chip" onclick="showPage('bank')">
+      <span class="label">${b.name}</span>
+      <span class="amount${neg?' negative':''}">${fmt(bal)}</span>
+    </div>`;
+  }).join('');
+
+  // total
+  const total = banks.reduce((s,b)=>s+computeBankBalance(b.id,txs,b.balance),0);
+  html += `<div class="balance-chip" onclick="showPage('bank')">
+    <span class="label">合計</span>
+    <span class="amount${total<0?' negative':''}">${fmt(total)}</span>
+  </div>`;
+  wrap.innerHTML = html;
+}
+
+function computeBankBalance(bankId, txs, initBal){
+  const mine = txs.filter(t=>t.bankId===bankId);
+  return mine.reduce((s,t)=> t.type==='in'? s+t.amount : s-t.amount, Number(initBal)||0);
+}
+
+// ════════════════════════════════
+//  DASHBOARD
+// ════════════════════════════════
+let dashMonth = new Date().toISOString().slice(0,7);
+function changeMonth(d){
+  const [y,m] = dashMonth.split('-').map(Number);
+  const nd = new Date(y, m-1+d, 1);
+  dashMonth = nd.toISOString().slice(0,7);
+  renderDashboard();
+}
+function goToday(){ dashMonth = new Date().toISOString().slice(0,7); renderDashboard(); }
+
+function renderDashboard(){
+  const [y,m] = dashMonth.split('-').map(Number);
+  document.getElementById('currentMonthLabel').textContent =
+    `${y} 年 ${String(m).padStart(2,'0')} 月`;
+
+  const house = DB.get(KEYS.house).filter(r=>monthOf(r.date)===dashMonth);
+  const exps  = DB.get(KEYS.expenses).filter(r=>monthOf(r.date)===dashMonth);
+  const rwds  = DB.get(KEYS.rewards).filter(r=>monthOf(r.date)===dashMonth);
+  const banks = DB.get(KEYS.banks);
+  const txs   = DB.get(KEYS.bankTx);
+
+  const totalHouse = house.reduce((s,r)=>s+r.amount,0);
+  const totalExp   = exps.reduce((s,r)=>s+r.amount,0);
+  const totalRwd   = rwds.reduce((s,r)=>s+r.amount,0);
+  const totalBal   = banks.reduce((s,b)=>s+computeBankBalance(b.id,txs,b.balance),0);
+
+  // stat grid
+  document.getElementById('dashStats').innerHTML = `
+    <div class="stat-box">
+      <div class="s-label">銀行總餘額</div>
+      <div class="s-value blue">${fmt(totalBal)}</div>
+      <div class="s-sub">${banks.length} 個帳戶</div>
+    </div>
+    <div class="stat-box">
+      <div class="s-label">本月房屋費用</div>
+      <div class="s-value red">${fmt(totalHouse)}</div>
+      <div class="s-sub">${house.length} 筆</div>
+    </div>
+    <div class="stat-box">
+      <div class="s-label">本月信用卡消費</div>
+      <div class="s-value red">${fmt(totalExp)}</div>
+      <div class="s-sub">${exps.length} 筆</div>
+    </div>
+    <div class="stat-box">
+      <div class="s-label">本月信用卡回饋</div>
+      <div class="s-value green">${fmt(totalRwd)}</div>
+      <div class="s-sub">${rwds.length} 筆</div>
+    </div>
+    <div class="stat-box">
+      <div class="s-label">本月總支出</div>
+      <div class="s-value red">${fmt(totalHouse+totalExp)}</div>
+      <div class="s-sub">房屋＋信用卡</div>
+    </div>
+    <div class="stat-box">
+      <div class="s-label">淨回饋效益</div>
+      <div class="s-value green">${fmt(totalRwd)}</div>
+      <div class="s-sub">回饋 / 消費 = ${totalExp?((totalRwd/totalExp)*100).toFixed(1)+'%':'─'}</div>
+    </div>
+  `;
+
+  // cat summary
+  const cats = {};
+  house.forEach(r=>{ const k=r.category+(r.customName?`(${r.customName})`:''); cats[k]=(cats[k]||0)+r.amount; });
+  const maxV = Math.max(...Object.values(cats),1);
+  let catHtml = Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`
+    <div class="cat-row">
+      <div class="cat-name">${k}</div>
+      <div class="cat-bar-wrap"><div class="cat-bar" style="width:${(v/maxV*100).toFixed(1)}%"></div></div>
+      <div class="cat-amt">${fmt(v)}</div>
+    </div>`).join('');
+  document.getElementById('catSummary').innerHTML = catHtml || '<div class="empty"><div class="icon">🏠</div>本月尚無房屋費用</div>';
+
+  // card dash
+  const cards = DB.get(KEYS.cards);
+  let cardHtml = '';
+  if(!cards.length){
+    cardHtml = '<div class="empty"><div class="icon">💳</div>尚未建立信用卡</div>';
+  } else {
+    cardHtml = cards.map(c=>{
+      const ce = exps.filter(e=>e.cardId===c.id).reduce((s,e)=>s+e.amount,0);
+      const cr = rwds.filter(r=>r.cardId===c.id).reduce((s,r)=>s+r.amount,0);
+      return `<div class="bank-item" style="margin-bottom:6px;">
+        <div class="bank-info">
+          <div class="bank-name">${c.name}</div>
+          <div class="bank-note">${c.num?'末四碼 '+c.num:''} ${c.reward||''}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-family:'DM Mono',monospace;font-size:0.85rem;color:var(--red2);">消費 ${fmt(ce)}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:0.85rem;color:var(--green);">回饋 ${fmt(cr)}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('cardSummaryDash').innerHTML = cardHtml;
+
+  // recent
+  const allRec = [
+    ...house.map(r=>({...r,_type:'house'})),
+    ...exps.map(r=>({...r,_type:'expense'})),
+    ...rwds.map(r=>({...r,_type:'reward'}))
+  ].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
+
+  if(!allRec.length){
+    document.getElementById('recentTable').innerHTML = '<div class="empty"><div class="icon">📋</div>本月尚無記錄</div>';
+    return;
+  }
+
+  document.getElementById('recentTable').innerHTML = `
+    <table>
+      <thead><tr><th>日期</th><th>類型</th><th>說明</th><th>金額</th></tr></thead>
+      <tbody>
+        ${allRec.map(r=>`<tr>
+          <td class="mono">${r.date}</td>
+          <td>${r._type==='house'?`<span class="badge badge-house">${r.category}</span>`:
+               r._type==='expense'?`<span class="badge badge-card">信用卡消費</span>`:
+               `<span class="badge badge-reward">回饋金</span>`}</td>
+          <td>${r._type==='house'?(r.customName||r.category):(r._type==='expense'?(r.desc||r.category):(r.type||'回饋'))}</td>
+          <td class="amount-cell ${r._type==='reward'?'positive':'negative'}">${r._type==='reward'?'+':'−'}${fmt(r.amount)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+
+  updateHeaderBalance();
+}
+
+// ════════════════════════════════
+//  BANK ACCOUNTS
+// ════════════════════════════════
+function openBankModal(id=null){
+  editingBankId = id;
+  if(id){
+    const b = DB.get(KEYS.banks).find(x=>x.id===id);
+    document.getElementById('bkName').value = b.name;
+    document.getElementById('bkNum').value = b.num||'';
+    document.getElementById('bkBalance').value = b.balance||0;
+    document.getElementById('bkNote').value = b.note||'';
+    document.getElementById('bankModalTitle').textContent = '編輯帳戶';
+  } else {
+    ['bkName','bkNum','bkNote'].forEach(k=>document.getElementById(k).value='');
+    document.getElementById('bkBalance').value=0;
+    document.getElementById('bankModalTitle').textContent = '新增帳戶';
+  }
+  document.getElementById('bankModal').classList.add('open');
+}
+function closeBankModal(){ document.getElementById('bankModal').classList.remove('open'); editingBankId=null; }
+
+function saveBankAccount(){
+  const name = document.getElementById('bkName').value.trim();
+  if(!name){ toast('請輸入帳戶名稱'); return; }
+  const banks = DB.get(KEYS.banks);
+  if(editingBankId){
+    const idx = banks.findIndex(b=>b.id===editingBankId);
+    if(idx>=0){
+      banks[idx] = {...banks[idx], name,
+        num: document.getElementById('bkNum').value.trim(),
+        balance: Number(document.getElementById('bkBalance').value)||0,
+        note: document.getElementById('bkNote').value.trim()};
+    }
+  } else {
+    banks.push({ id:uid(), name,
+      num: document.getElementById('bkNum').value.trim(),
+      balance: Number(document.getElementById('bkBalance').value)||0,
+      note: document.getElementById('bkNote').value.trim()
+    });
+  }
+  DB.set(KEYS.banks, banks);
+  closeBankModal(); populateBankSelects(); renderBankList(); updateHeaderBalance();
+  toast('帳戶已儲存');
+}
+
+function deleteBankAccount(id){
+  if(!confirm('確定刪除此帳戶？相關異動記錄也將一併刪除')) return;
+  DB.set(KEYS.banks, DB.get(KEYS.banks).filter(b=>b.id!==id));
+  DB.set(KEYS.bankTx, DB.get(KEYS.bankTx).filter(t=>t.bankId!==id));
+  populateBankSelects(); renderBankList(); updateHeaderBalance(); toast('已刪除');
+}
+
+function renderBankList(){
+  const banks = DB.get(KEYS.banks);
+  const txs   = DB.get(KEYS.bankTx);
+  if(!banks.length){
+    document.getElementById('bankList').innerHTML = '<div class="empty"><div class="icon">🏦</div>尚未新增帳戶</div>';
+    return;
+  }
+  document.getElementById('bankList').innerHTML = banks.map(b=>{
+    const bal = computeBankBalance(b.id, txs, b.balance);
+    return `<div class="bank-item">
+      <div class="bank-info">
+        <div class="bank-name">${b.name}${b.num?' (末四碼 '+b.num+')':''}</div>
+        <div class="bank-note">${b.note||'　'}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="bank-amount" style="color:${bal<0?'var(--red)':'var(--green)'}">${fmt(bal)}</div>
+        <button class="btn btn-secondary btn-icon" onclick="openBankModal('${b.id}')">✏️</button>
+        <button class="btn btn-danger btn-icon" onclick="deleteBankAccount('${b.id}')">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function addBankTx(){
+  const bankId = document.getElementById('txBank').value;
+  const type   = document.getElementById('txType').value;
+  const amount = Number(document.getElementById('txAmount').value);
+  const date   = document.getElementById('txDate').value;
+  const note   = document.getElementById('txNote').value.trim();
+  if(!bankId||!amount||!date){ toast('請填寫必要欄位'); return; }
+  const txs = DB.get(KEYS.bankTx);
+  txs.push({ id:uid(), bankId, type, amount, date, note });
+  DB.set(KEYS.bankTx, txs);
+  document.getElementById('txAmount').value='';
+  document.getElementById('txNote').value='';
+  renderBankList(); renderBankTxTable(); updateHeaderBalance(); toast('已記錄異動');
+}
+
+let bankTxPage=1;
+function renderBankTxTable(){
+  const bankId = document.getElementById('filterBankTx').value;
+  const month  = document.getElementById('filterBankMonth').value;
+  let txs = DB.get(KEYS.bankTx);
+  if(bankId) txs = txs.filter(t=>t.bankId===bankId);
+  if(month)  txs = txs.filter(t=>monthOf(t.date)===month);
+  txs = txs.sort((a,b)=>b.date.localeCompare(a.date));
+
+  const banks = DB.get(KEYS.banks);
+  const bMap = Object.fromEntries(banks.map(b=>[b.id,b.name]));
+
+  renderPaginatedTable('bankTxTable','bankTxPag',txs,bankTxPage,p=>{ bankTxPage=p; renderBankTxTable(); },
+    ['日期','帳戶','類型','金額','備註',''],
+    r=>`<td class="mono">${r.date}</td>
+        <td>${bMap[r.bankId]||'─'}</td>
+        <td>${r.type==='in'?'存入 ✚':'支出 ─'}</td>
+        <td class="amount-cell ${r.type==='in'?'positive':'negative'}">${r.type==='in'?'+':'−'}${fmt(r.amount)}</td>
+        <td>${r.note||'─'}</td>
+        <td><button class="btn btn-danger btn-icon" onclick="deleteRecord('bankTx','${r.id}',renderBankTxTable)">🗑</button></td>`
+  );
+}
+
+// ════════════════════════════════
+//  HOUSE EXPENSES
+// ════════════════════════════════
+function addHouseExpense(){
+  const cat    = document.getElementById('houseCat').value;
+  const custom = document.getElementById('houseCustomName').value.trim();
+  const amount = Number(document.getElementById('houseAmount').value);
+  const date   = document.getElementById('houseDate').value;
+  const bank   = document.getElementById('houseBank').value;
+  const period = document.getElementById('housePeriod').value;
+  const note   = document.getElementById('houseNote').value.trim();
+  const recur  = document.getElementById('houseRecurring').checked;
+  if(!amount||!date){ toast('請填寫金額與日期'); return; }
+
+  const rec = DB.get(KEYS.house);
+  const entry = { id:uid(), category:cat, customName:custom, amount, date, bankId:bank, period, note };
+  rec.push(entry);
+  DB.set(KEYS.house, rec);
+
+  if(recur){
+    const recs = DB.get(KEYS.recurring);
+    const exists = recs.findIndex(r=>r.category===cat&&r.customName===custom);
+    const rEntry = { id:uid(), category:cat, customName:custom, amount, note, bankId:bank };
+    if(exists>=0) recs[exists]=rEntry; else recs.push(rEntry);
+    DB.set(KEYS.recurring, recs);
+    toast('已新增費用並設為定期');
+  } else {
+    toast('房屋費用已記錄');
+  }
+
+  ['houseAmount','houseNote','houseCustomName','housePeriod'].forEach(k=>document.getElementById(k).value='');
+  document.getElementById('houseRecurring').checked=false;
+  renderHouseTable();
+}
+
+let housePage=1;
+function renderHouseTable(){
+  const cat   = document.getElementById('filterHouseCat').value;
+  const month = document.getElementById('filterHouseMonth').value;
+  let rows = DB.get(KEYS.house);
+  if(cat)   rows = rows.filter(r=>r.category===cat);
+  if(month) rows = rows.filter(r=>monthOf(r.date)===month);
+  rows = rows.sort((a,b)=>b.date.localeCompare(a.date));
+
+  const banks = DB.get(KEYS.banks);
+  const bMap  = Object.fromEntries(banks.map(b=>[b.id,b.name]));
+
+  renderPaginatedTable('houseTable','housePag',rows,housePage,p=>{ housePage=p; renderHouseTable(); },
+    ['日期','類別','名稱','期間','付款帳戶','金額','備註',''],
+    r=>`<td class="mono">${r.date}</td>
+        <td><span class="badge badge-house">${r.category}</span></td>
+        <td>${r.customName||'─'}</td>
+        <td class="mono">${r.period||'─'}</td>
+        <td>${bMap[r.bankId]||'─'}</td>
+        <td class="amount-cell negative">−${fmt(r.amount)}</td>
+        <td>${r.note||'─'}</td>
+        <td><button class="btn btn-danger btn-icon" onclick="deleteRecord('house','${r.id}',renderHouseTable)">🗑</button></td>`
+  );
+}
+
+// recurring
+function openRecurringModal(){
+  renderRecurringList();
+  document.getElementById('recurringModal').classList.add('open');
+}
+function closeRecurringModal(){ document.getElementById('recurringModal').classList.remove('open'); }
+function renderRecurringList(){
+  const recs = DB.get(KEYS.recurring);
+  if(!recs.length){
+    document.getElementById('recurringList').innerHTML='<div class="empty"><div class="icon">🔄</div>尚無定期費用</div>';
+    return;
+  }
+  document.getElementById('recurringList').innerHTML = `
+    <table><thead><tr><th>類別</th><th>名稱</th><th>金額</th><th></th></tr></thead>
+    <tbody>
+    ${recs.map(r=>`<tr>
+      <td><span class="badge badge-house">${r.category}</span></td>
+      <td>${r.customName||'─'}</td>
+      <td class="amount-cell negative">−${fmt(r.amount)}</td>
+      <td><button class="btn btn-danger btn-icon" onclick="deleteRecurring('${r.id}')">🗑</button></td>
+    </tr>`).join('')}
+    </tbody></table>`;
+}
+function deleteRecurring(id){
+  DB.set(KEYS.recurring, DB.get(KEYS.recurring).filter(r=>r.id!==id));
+  renderRecurringList(); toast('已移除定期費用');
+}
+function applyRecurring(){
+  const recs = DB.get(KEYS.recurring);
+  if(!recs.length){ toast('沒有定期費用'); return; }
+  const dateStr = today();
+  const house = DB.get(KEYS.house);
+  recs.forEach(r=>{
+    house.push({ id:uid(), category:r.category, customName:r.customName,
+      amount:r.amount, date:dateStr, bankId:r.bankId||'', period:dateStr.slice(0,7), note:'（定期自動套用）' });
+  });
+  DB.set(KEYS.house, house);
+  closeRecurringModal(); renderHouseTable(); toast(`已套用 ${recs.length} 筆定期費用`);
+}
+
+// ════════════════════════════════
+//  CREDIT CARDS
+// ════════════════════════════════
+function openCardModal(){ document.getElementById('cardModal').classList.add('open'); }
+function closeCardModal(){ document.getElementById('cardModal').classList.remove('open'); }
+function saveCard(){
+  const name = document.getElementById('cdName').value.trim();
+  if(!name){ toast('請輸入卡片名稱'); return; }
+  const cards = DB.get(KEYS.cards);
+  cards.push({ id:uid(), name,
+    num: document.getElementById('cdNum').value.trim(),
+    cutoff: document.getElementById('cdCutoff').value,
+    reward: document.getElementById('cdReward').value.trim()
+  });
+  DB.set(KEYS.cards, cards);
+  ['cdName','cdNum','cdCutoff','cdReward'].forEach(k=>document.getElementById(k).value='');
+  closeCardModal(); renderCardList(); populateCardSelects(); renderCardStats(); toast('信用卡已儲存');
+}
+function deleteCard(id){
+  if(!confirm('確定刪除此卡片？')) return;
+  DB.set(KEYS.cards, DB.get(KEYS.cards).filter(c=>c.id!==id));
+  renderCardList(); populateCardSelects(); renderCardStats(); toast('已刪除');
+}
+function renderCardList(){
+  const cards = DB.get(KEYS.cards);
+  if(!cards.length){
+    document.getElementById('cardList').innerHTML='<div class="empty"><div class="icon">💳</div>尚未新增信用卡</div>';
+    return;
+  }
+  document.getElementById('cardList').innerHTML = cards.map(c=>`
+    <div class="bank-item">
+      <div class="bank-info">
+        <div class="bank-name">${c.name}${c.num?' ····'+c.num:''}</div>
+        <div class="bank-note">${c.cutoff?'截止日：'+c.cutoff+'日 ':''}${c.reward||''}</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-danger btn-icon" onclick="deleteCard('${c.id}')">🗑</button>
+      </div>
+    </div>`).join('');
+}
+
+function addExpense(){
+  const cardId = document.getElementById('expCard').value;
+  const amount = Number(document.getElementById('expAmount').value);
+  const date   = document.getElementById('expDate').value;
+  const cat    = document.getElementById('expCat').value;
+  const desc   = document.getElementById('expDesc').value.trim();
+  if(!cardId||!amount||!date){ toast('請填寫必要欄位'); return; }
+  const exps = DB.get(KEYS.expenses);
+  exps.push({ id:uid(), cardId, amount, date, category:cat, desc });
+  DB.set(KEYS.expenses, exps);
+  ['expAmount','expDesc'].forEach(k=>document.getElementById(k).value='');
+  renderExpTable(); renderCardStats(); toast('消費已記錄');
+}
+
+function addReward(){
+  const cardId = document.getElementById('rwdCard').value;
+  const type   = document.getElementById('rwdType').value;
+  const amount = Number(document.getElementById('rwdAmount').value);
+  const date   = document.getElementById('rwdDate').value;
+  const note   = document.getElementById('rwdNote').value.trim();
+  if(!cardId||!amount||!date){ toast('請填寫必要欄位'); return; }
+  const rwds = DB.get(KEYS.rewards);
+  rwds.push({ id:uid(), cardId, type, amount, date, note });
+  DB.set(KEYS.rewards, rwds);
+  ['rwdAmount','rwdNote'].forEach(k=>document.getElementById(k).value='');
+  renderExpTable(); renderCardStats(); toast('回饋金已記錄');
+}
+
+function renderCardStats(){
+  const cards = DB.get(KEYS.cards);
+  const exps  = DB.get(KEYS.expenses);
+  const rwds  = DB.get(KEYS.rewards);
+  if(!cards.length){ document.getElementById('cardStats').innerHTML='<div class="empty">尚未建立信用卡</div>'; return; }
+  const cm = new Date().toISOString().slice(0,7);
+  document.getElementById('cardStats').innerHTML = cards.map(c=>{
+    const ce  = exps.filter(e=>e.cardId===c.id).reduce((s,e)=>s+e.amount,0);
+    const cr  = rwds.filter(r=>r.cardId===c.id).reduce((s,r)=>s+r.amount,0);
+    const cme = exps.filter(e=>e.cardId===c.id&&monthOf(e.date)===cm).reduce((s,e)=>s+e.amount,0);
+    return `<div class="bank-item" style="margin-bottom:8px;">
+      <div class="bank-info">
+        <div class="bank-name">${c.name}</div>
+        <div class="bank-note">本月消費 ${fmt(cme)}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:0.78rem;color:var(--ink3);">累計消費 <span class="mono" style="color:var(--red2);">${fmt(ce)}</span></div>
+        <div style="font-size:0.78rem;color:var(--ink3);">累計回饋 <span class="mono" style="color:var(--green);">${fmt(cr)}</span></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+let expPage=1;
+function renderExpTable(){
+  const cardId = document.getElementById('filterExpCard').value;
+  const type   = document.getElementById('filterExpType').value;
+  const month  = document.getElementById('filterExpMonth').value;
+  const cards  = DB.get(KEYS.cards);
+  const cMap   = Object.fromEntries(cards.map(c=>[c.id,c.name]));
+
+  let rows = [];
+  if(!type||type==='expense')
+    rows.push(...DB.get(KEYS.expenses).map(r=>({...r,_type:'expense'})));
+  if(!type||type==='reward')
+    rows.push(...DB.get(KEYS.rewards).map(r=>({...r,_type:'reward'})));
+  if(cardId) rows = rows.filter(r=>r.cardId===cardId);
+  if(month)  rows = rows.filter(r=>monthOf(r.date)===month);
+  rows = rows.sort((a,b)=>b.date.localeCompare(a.date));
+
+  renderPaginatedTable('expTable','expPag',rows,expPage,p=>{ expPage=p; renderExpTable(); },
+    ['日期','信用卡','類型','說明','金額',''],
+    r=>`<td class="mono">${r.date}</td>
+        <td>${cMap[r.cardId]||'─'}</td>
+        <td>${r._type==='expense'?`<span class="badge badge-card">${r.category||'消費'}</span>`:`<span class="badge badge-reward">${r.type||'回饋'}</span>`}</td>
+        <td>${r.desc||r.note||'─'}</td>
+        <td class="amount-cell ${r._type==='reward'?'positive':'negative'}">${r._type==='reward'?'+':'−'}${fmt(r.amount)}</td>
+        <td><button class="btn btn-danger btn-icon" onclick="deleteRecord('${r._type==='expense'?'expenses':'rewards'}','${r.id}',renderExpTable)">🗑</button></td>`
+  );
+}
+
+// ════════════════════════════════
+//  QUERY
+// ════════════════════════════════
+let queryPage=1;
+function runQuery(){
+  const type    = document.getElementById('qType').value;
+  const dfrom   = document.getElementById('qDateFrom').value;
+  const dto     = document.getElementById('qDateTo').value;
+  const keyword = document.getElementById('qKeyword').value.toLowerCase();
+
+  const cards = DB.get(KEYS.cards);
+  const banks = DB.get(KEYS.banks);
+  const cMap  = Object.fromEntries(cards.map(c=>[c.id,c.name]));
+  const bMap  = Object.fromEntries(banks.map(b=>[b.id,b.name]));
+
+  let rows = [];
+  if(!type||type==='bank')
+    rows.push(...DB.get(KEYS.bankTx).map(r=>({...r,_type:'bank'})));
+  if(!type||type==='house')
+    rows.push(...DB.get(KEYS.house).map(r=>({...r,_type:'house'})));
+  if(!type||type==='expense')
+    rows.push(...DB.get(KEYS.expenses).map(r=>({...r,_type:'expense'})));
+  if(!type||type==='reward')
+    rows.push(...DB.get(KEYS.rewards).map(r=>({...r,_type:'reward'})));
+
+  if(dfrom) rows = rows.filter(r=>r.date>=dfrom);
+  if(dto)   rows = rows.filter(r=>r.date<=dto);
+  if(keyword){
+    rows = rows.filter(r=>{
+      const str = JSON.stringify(r).toLowerCase();
+      return str.includes(keyword);
+    });
+  }
+  rows = rows.sort((a,b)=>b.date.localeCompare(a.date));
+
+  // stats
+  const totalOut = rows.filter(r=>r._type!=='reward'&&r._type!=='bank'||(r._type==='bank'&&r.type==='in'===false))
+    .filter(r=>!(r._type==='bank'&&r.type==='in'))
+    .reduce((s,r)=>s+r.amount,0);
+  const totalIn = rows.filter(r=>r._type==='reward'||(r._type==='bank'&&r.type==='in'))
+    .reduce((s,r)=>s+r.amount,0);
+  document.getElementById('queryStats').innerHTML = `
+    <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);">
+      <div class="stat-box"><div class="s-label">篩選結果</div><div class="s-value">${fmtNum(rows.length)} 筆</div></div>
+      <div class="stat-box"><div class="s-label">支出合計</div><div class="s-value red">${fmt(rows.filter(r=>r._type!=='reward'&&!(r._type==='bank'&&r.type==='in')).reduce((s,r)=>s+r.amount,0))}</div></div>
+      <div class="stat-box"><div class="s-label">回饋 / 收入合計</div><div class="s-value green">${fmt(rows.filter(r=>r._type==='reward'||(r._type==='bank'&&r.type==='in')).reduce((s,r)=>s+r.amount,0))}</div></div>
+    </div>`;
+
+  renderPaginatedTable('queryTable','queryPag',rows,queryPage,p=>{ queryPage=p; runQuery(); },
+    ['日期','類型','說明','金額','備註'],
+    r=>{
+      let typeLabel='', desc='', amtClass='negative', sign='−';
+      if(r._type==='bank'){
+        typeLabel=`<span class="badge badge-bank">${r.type==='in'?'銀行存入':'銀行支出'}</span>`;
+        desc=bMap[r.bankId]||'─';
+        amtClass=r.type==='in'?'positive':'negative';
+        sign=r.type==='in'?'+':'−';
+      }else if(r._type==='house'){
+        typeLabel=`<span class="badge badge-house">${r.category}</span>`;
+        desc=r.customName||r.category;
+      }else if(r._type==='expense'){
+        typeLabel=`<span class="badge badge-card">${r.category||'信用卡消費'}</span>`;
+        desc=`${cMap[r.cardId]||'─'} ${r.desc||''}`;
+      }else{
+        typeLabel=`<span class="badge badge-reward">回饋金</span>`;
+        desc=`${cMap[r.cardId]||'─'} ${r.type||''}`;
+        amtClass='positive'; sign='+';
+      }
+      return `<td class="mono">${r.date}</td><td>${typeLabel}</td><td>${desc}</td>
+              <td class="amount-cell ${amtClass}">${sign}${fmt(r.amount)}</td>
+              <td>${r.note||r.desc||'─'}</td>`;
+    }
+  );
+}
+function clearQuery(){
+  ['qType','qDateFrom','qDateTo','qKeyword'].forEach(k=>{
+    const el=document.getElementById(k); if(el) el.value='';
+  });
+  runQuery();
+}
+
+// Year stats
+function populateYearSelect(){
+  const all = [
+    ...DB.get(KEYS.house),
+    ...DB.get(KEYS.expenses),
+    ...DB.get(KEYS.rewards),
+    ...DB.get(KEYS.bankTx)
+  ];
+  const years = [...new Set(all.map(r=>r.date?.slice(0,4)).filter(Boolean))].sort().reverse();
+  const curY = new Date().getFullYear().toString();
+  if(!years.includes(curY)) years.unshift(curY);
+  const sel = document.getElementById('yearSelect');
+  sel.innerHTML = years.map(y=>`<option value="${y}">${y} 年</option>`).join('');
+  renderYearStats();
+}
+function renderYearStats(){
+  const y = document.getElementById('yearSelect').value;
+  if(!y) return;
+  const house = DB.get(KEYS.house).filter(r=>r.date?.startsWith(y));
+  const exps  = DB.get(KEYS.expenses).filter(r=>r.date?.startsWith(y));
+  const rwds  = DB.get(KEYS.rewards).filter(r=>r.date?.startsWith(y));
+
+  const months = Array.from({length:12},(_,i)=>String(i+1).padStart(2,'0'));
+  let html = `<div class="table-wrap"><table>
+    <thead><tr><th>月份</th><th>房屋費用</th><th>信用卡消費</th><th>回饋金</th><th>合計支出</th></tr></thead><tbody>`;
+  let totalH=0,totalE=0,totalR=0;
+  months.forEach(m=>{
+    const ym=`${y}-${m}`;
+    const h=house.filter(r=>monthOf(r.date)===ym).reduce((s,r)=>s+r.amount,0);
+    const e=exps.filter(r=>monthOf(r.date)===ym).reduce((s,r)=>s+r.amount,0);
+    const r=rwds.filter(r=>monthOf(r.date)===ym).reduce((s,r)=>s+r.amount,0);
+    totalH+=h; totalE+=e; totalR+=r;
+    html+=`<tr>
+      <td>${y}/${m}</td>
+      <td class="amount-cell ${h?'negative':''}">${h?'−'+fmt(h):'─'}</td>
+      <td class="amount-cell ${e?'negative':''}">${e?'−'+fmt(e):'─'}</td>
+      <td class="amount-cell ${r?'positive':''}">${r?'+'+fmt(r):'─'}</td>
+      <td class="amount-cell negative">${(h+e)?'−'+fmt(h+e):'─'}</td>
+    </tr>`;
+  });
+  html+=`<tr style="font-weight:600;background:var(--paper2);">
+    <td>全年合計</td>
+    <td class="amount-cell negative">−${fmt(totalH)}</td>
+    <td class="amount-cell negative">−${fmt(totalE)}</td>
+    <td class="amount-cell positive">+${fmt(totalR)}</td>
+    <td class="amount-cell negative">−${fmt(totalH+totalE)}</td>
+  </tr></tbody></table></div>`;
+  document.getElementById('yearStats').innerHTML = html;
+}
+
+// ════════════════════════════════
+//  HELPERS
+// ════════════════════════════════
+function populateBankSelects(){
+  const banks = DB.get(KEYS.banks);
+  const opts  = banks.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
+  const blank = '<option value="">-- 現金/其他 --</option>';
+  ['houseBank','txBank'].forEach(k=>{
+    const el=document.getElementById(k);
+    if(!el) return;
+    el.innerHTML = (k==='houseBank'?blank:'') + opts;
+  });
+  // filter
+  const fbl = document.getElementById('filterBankTx');
+  if(fbl) fbl.innerHTML = '<option value="">全部</option>'+opts;
+}
+function populateCardSelects(){
+  const cards = DB.get(KEYS.cards);
+  const opts  = cards.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  ['expCard','rwdCard'].forEach(k=>{
+    const el=document.getElementById(k);
+    if(el) el.innerHTML=opts;
+  });
+  const fec = document.getElementById('filterExpCard');
+  if(fec) fec.innerHTML='<option value="">全部</option>'+opts;
+}
+
+function deleteRecord(key, id, cb){
+  if(!confirm('確定刪除？')) return;
+  DB.set(KEYS[key], DB.get(KEYS[key]).filter(r=>r.id!==id));
+  if(cb) cb(); updateHeaderBalance(); toast('已刪除');
+}
+
+function clearFilter(type){
+  if(type==='house'){
+    document.getElementById('filterHouseCat').value='';
+    document.getElementById('filterHouseMonth').value='';
+    renderHouseTable();
+  } else if(type==='card'){
+    document.getElementById('filterExpCard').value='';
+    document.getElementById('filterExpType').value='';
+    document.getElementById('filterExpMonth').value='';
+    renderExpTable();
+  }
+}
+
+const PAGE_SIZE = 15;
+function renderPaginatedTable(tableId, pagId, rows, page, onPage, headers, rowFn){
+  const total = rows.length;
+  const pages = Math.max(1, Math.ceil(total/PAGE_SIZE));
+  const p = Math.min(page, pages);
+  const slice = rows.slice((p-1)*PAGE_SIZE, p*PAGE_SIZE);
+
+  const tEl = document.getElementById(tableId);
+  if(!total){
+    tEl.innerHTML='<div class="empty"><div class="icon">📋</div>暫無資料</div>';
+    if(pagId){ document.getElementById(pagId).innerHTML=''; }
+    return;
+  }
+
+  tEl.innerHTML = `<table>
+    <thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead>
+    <tbody>${slice.map(r=>`<tr>${rowFn(r)}</tr>`).join('')}</tbody>
+  </table>`;
+
+  if(pagId){
+    const pEl = document.getElementById(pagId);
+    if(pages<=1){ pEl.innerHTML=''; return; }
+    let pHtml = `<span>${(p-1)*PAGE_SIZE+1}–${Math.min(p*PAGE_SIZE,total)} / ${total}</span>`;
+    pHtml += `<button class="page-btn" ${p<=1?'disabled':''} onclick="(${onPage.toString()})(${p-1})">‹</button>`;
+    for(let i=1;i<=pages;i++){
+      if(pages>7&&Math.abs(i-p)>2&&i!==1&&i!==pages){ if(Math.abs(i-p)===3) pHtml+='<span>…</span>'; continue; }
+      pHtml+=`<button class="page-btn ${i===p?'active':''}" onclick="(${onPage.toString()})(${i})">${i}</button>`;
+    }
+    pHtml+=`<button class="page-btn" ${p>=pages?'disabled':''} onclick="(${onPage.toString()})(${p+1})">›</button>`;
+    pEl.innerHTML=pHtml;
+  }
+}
+
+// ════════════════════════════════
+//  INIT
+// ════════════════════════════════
+function init(){
+  // set default dates
+  const td = today();
+  ['txDate','houseDate','expDate','rwdDate'].forEach(k=>{
+    const el=document.getElementById(k);
+    if(el) el.value=td;
+  });
+  document.getElementById('housePeriod').value = td.slice(0,7);
+  document.getElementById('filterBankMonth').value = td.slice(0,7);
+  document.getElementById('filterExpMonth').value  = td.slice(0,7);
+  document.getElementById('filterHouseMonth').value= td.slice(0,7);
+
+  populateBankSelects();
+  populateCardSelects();
+  updateHeaderBalance();
+  renderDashboard();
+}
+
+init();
+</script>
+</body>
+</html>
